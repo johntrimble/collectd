@@ -2,8 +2,7 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches: insights-multiarch
 
 jobs: 
   release:
@@ -13,6 +12,11 @@ jobs:
       - uses: actions/checkout@v2
         with: 
           submodules: true
+      - name: Setup Buildx
+        id: buildx
+        uses: crazy-max/ghaction-docker-buildx@v3
+        with:
+          version: latest
       - name: Build collectd in docker
         run: |
           set -x
@@ -23,20 +27,19 @@ jobs:
           outputzip="insights-collectd-${RELEASE_VERSION}.zip"
 
           image=collectd-bundle
-          docker build --build-arg insight_version=${RELEASE_VERSION} -t $image . 
+          docker buildx build --platform linux/amd64,linux/arm64 --build-arg insight_version=${RELEASE_VERSION} -t $image .
 
-          cid=$(docker create $image true)
+          cid=$(docker create --platform linux/arm64 $image true)
 
           docker export $cid | tar --delete 'dev' 'proc' 'etc' 'sys' 'collectd-symbols' | gzip -f - > $outputgz
           docker export $cid | tar --delete 'dev' 'proc' 'etc' 'sys' 'collectd' | gzip -f - > $debugoutput
-          tar xzf $outputgz && zip $outputzip $(tar ztf $outputgz)
+          tar -tzf $outputgz
+          # tar xzf $outputgz && zip $outputzip $(tar ztf $outputgz)
 
-          assets=()
-          for asset in $outputzip $outputgz $debugoutput; do
-            assets+=("-a" "$asset")
-          done
+          # assets=()
+          # for asset in $outputzip $outputgz $debugoutput; do
+          #   assets+=("-a" "$asset")
+          # done
       
-          hub release create "${assets[@]}" -m "v$RELEASE_VERSION" "v$RELEASE_VERSION"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
