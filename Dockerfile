@@ -172,6 +172,7 @@ ADD docker-build/templates/collectd/managed_config /opt/collectd/etc/collectd/
 
 ADD docker-build/collect-libs.sh docker-build/symbol-gen.sh /opt/
 RUN /opt/symbol-gen.sh /opt/collectd /opt/collectd-symbols
+ARG TARGETARCH
 RUN /opt/collect-libs.sh /opt/collectd /opt/collectd
 
 # Clean up unnecessary man files

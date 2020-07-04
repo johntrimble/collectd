@@ -83,8 +83,13 @@ do
   fi
 done
 
-#also copy things needed to run
-cp -a -R --parents /lib/x86_64-linux-gnu $target_path
+# also copy things needed to run
+# NOTE: BuildKit (a Docker backend) sets the TARGETARCH env variable
+if [[ "$TARGETARCH" == "aarch64" ]] || [[ "$TARGETARCH" == "arm64" ]]; then
+  cp -a -R --parents /lib/aarch64-linux-gnu $target_path
+else
+  cp -a -R --parents /lib/x86_64-linux-gnu $target_path
+fi
 
 for link in $(find $target_path -type l)
 do
