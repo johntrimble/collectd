@@ -20,34 +20,42 @@ jobs:
       - name: Build collectd in docker
         run: |
           set -x
-          # TODO: make this not wrong.
-          # RELEASE_VERSION="${GITHUB_REF##*/}"
-          # RELEASE_VERSION="${RELEASE_VERSION:1}"
+          RELEASE_VERSION="${GITHUB_REF##*/}"
+          RELEASE_VERSION="${RELEASE_VERSION:1}"
+          debugoutput_arm64="insights-collectd-debug-${RELEASE_VERSION}_arm64.tar.gz"
+          outputgz_arm64="insights-collectd-${RELEASE_VERSION}_arm64.tar.gz"
+          outputzip_arm64="insights-collectd-${RELEASE_VERSION}_arm64.zip"
+          debugoutput_amd64="insights-collectd-debug-${RELEASE_VERSION}_amd64.tar.gz"
+          outputgz_amd64="insights-collectd-${RELEASE_VERSION}_amd64.tar.gz"
+          outputzip_amd64="insights-collectd-${RELEASE_VERSION}_amd64.zip"
 
-          # At the moment, this branch will not be a version number. This will prevent the build from
-          # failing due to `insight_version` (which will have the value of $RELEASE_VERSION) having
-          # a non-version number value. Logic taken from version-gen.sh.
-          RELEASE_VERSION="$(git describe --dirty=+ --abbrev=7 2> /dev/null | grep collectd | sed -e 's/^collectd-//' -e 's/-/./g')"
-          echo "Release version is $RELEASE_VERSION"
+          # Build arm64 assets
+          image_arm64=collectd-bundle-arm
+          docker buildx build --platform linux/arm64 --build-arg insight_version=${RELEASE_VERSION} -t $image_arm64 .
 
-          debugoutput="insights-collectd-debug-${RELEASE_VERSION}.tar.gz"
-          outputgz="insights-collectd-${RELEASE_VERSION}.tar.gz"
-          outputzip="insights-collectd-${RELEASE_VERSION}.zip"
+          cid=$(docker create $image_arm64 true)
 
-          image=collectd-bundle
-          docker buildx build --platform linux/arm64 --build-arg insight_version=${RELEASE_VERSION} -t $image .
+          docker export $cid | tar --delete 'dev' 'proc' 'etc' 'sys' 'collectd-symbols' | gzip -f - > $outputgz_arm64
+          docker export $cid | tar --delete 'dev' 'proc' 'etc' 'sys' 'collectd' | gzip -f - > $debugoutput_arm64
+          tar xzf $outputgz_arm64 && zip $outputzip_arm64 $(tar ztf $outputgz_arm64)
 
-          cid=$(docker create --platform linux/arm64 $image true)
+          # Build amd64 assets
+          image_amd64=collectd-bundle-amd
+          docker build --build-arg insight_version=${RELEASE_VERSION} -t $image_amd64 .
 
-          docker export $cid | tar --delete 'dev' 'proc' 'etc' 'sys' 'collectd-symbols' | gzip -f - > $outputgz
-          docker export $cid | tar --delete 'dev' 'proc' 'etc' 'sys' 'collectd' | gzip -f - > $debugoutput
-          tar -tzf $outputgz
-          # tar xzf $outputgz && zip $outputzip $(tar ztf $outputgz)
+          cid=$(docker create $image_amd64 true)
 
-          # assets=()
-          # for asset in $outputzip $outputgz $debugoutput; do
-          #   assets+=("-a" "$asset")
-          # done
+          docker export $cid | tar --delete 'dev' 'proc' 'etc' 'sys' 'collectd-symbols' | gzip -f - > $outputgz_amd64
+          docker export $cid | tar --delete 'dev' 'proc' 'etc' 'sys' 'collectd' | gzip -f - > $debugoutput_amd64
+          tar xzf $outputgz_amd64 && zip $outputzip_amd64 $(tar ztf $outputgz_amd64)
+
+          # Create release
+          assets=()
+          for asset in $outputzip_arm64 $outputgz_arm64 $debugoutput_arm64 $outputzip_amd64 $outputgz_amd64 $debugoutput_amd64; do
+            assets+=("-a" "$asset")
+          done
+
+          hub release create --prerelease "${assets[@]}" -m "v$RELEASE_VERSION" "v$RELEASE_VERSION"
       
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
