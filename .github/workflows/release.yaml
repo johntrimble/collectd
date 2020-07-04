@@ -2,7 +2,8 @@ name: Release
 
 on:
   push:
-    branches: insights-multiarch
+    tags:
+      - 'v*.*.*'
 
 jobs: 
   release:
