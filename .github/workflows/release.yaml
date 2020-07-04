@@ -32,7 +32,7 @@ jobs:
 
           # Build arm64 assets
           image_arm64=collectd-bundle-arm
-          docker buildx build --platform linux/arm64 --build-arg insight_version=${RELEASE_VERSION} -t $image_arm64 .
+          docker buildx build --load --platform linux/arm64 --build-arg insight_version=${RELEASE_VERSION} -t $image_arm64 .
 
           cid=$(docker create $image_arm64 true)
 
