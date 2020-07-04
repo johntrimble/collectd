@@ -112,6 +112,7 @@ RUN cd /collectd && ./clean.sh && ./build.sh && ./configure \
         --localstatedir=/var \
         --enable-debug       \
         --enable-all-plugins \
+        --disable-turbostat \
         --disable-ascent \
         --disable-rrdcached \
         --disable-lvm \
