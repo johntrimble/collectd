@@ -41,18 +41,19 @@ jobs:
           tar xzf $outputgz_arm64 && zip $outputzip_arm64 $(tar ztf $outputgz_arm64)
 
           # Build amd64 assets
-          image_amd64=collectd-bundle-amd
-          docker build --build-arg insight_version=${RELEASE_VERSION} -t $image_amd64 .
+          # image_amd64=collectd-bundle-amd
+          # docker build --build-arg insight_version=${RELEASE_VERSION} -t $image_amd64 .
 
-          cid=$(docker create $image_amd64 true)
+          # cid=$(docker create $image_amd64 true)
 
-          docker export $cid | tar --delete 'dev' 'proc' 'etc' 'sys' 'collectd-symbols' | gzip -f - > $outputgz_amd64
-          docker export $cid | tar --delete 'dev' 'proc' 'etc' 'sys' 'collectd' | gzip -f - > $debugoutput_amd64
-          tar xzf $outputgz_amd64 && zip $outputzip_amd64 $(tar ztf $outputgz_amd64)
+          # docker export $cid | tar --delete 'dev' 'proc' 'etc' 'sys' 'collectd-symbols' | gzip -f - > $outputgz_amd64
+          # docker export $cid | tar --delete 'dev' 'proc' 'etc' 'sys' 'collectd' | gzip -f - > $debugoutput_amd64
+          # tar xzf $outputgz_amd64 && zip $outputzip_amd64 $(tar ztf $outputgz_amd64)
 
           # Create release
+          # $outputzip_amd64 $outputgz_amd64 $debugoutput_amd64
           assets=()
-          for asset in $outputzip_arm64 $outputgz_arm64 $debugoutput_arm64 $outputzip_amd64 $outputgz_amd64 $debugoutput_amd64; do
+          for asset in $outputzip_arm64 $outputgz_arm64 $debugoutput_arm64; do
             assets+=("-a" "$asset")
           done
 
